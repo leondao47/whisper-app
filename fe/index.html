@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Audio Recorder and Player</title>
+  </head>
+  <body>
+    <h1>Audio Recorder and Player</h1>
+    <button id="recordButton">Record</button>
+    <button id="stopButton" disabled>Stop</button>
+    <button id="playButton" disabled>Play</button>
+    <button id="sendButton" disabled>Send</button>
+    <audio controls id="audioPlayer"></audio>
+    <p id="resultText"></p>
+
+    <script>
+      let mediaRecorder;
+      let recordedChunks = [];
+      let uploadBlob;
+
+      const recordButton = document.getElementById("recordButton");
+      const stopButton = document.getElementById("stopButton");
+      const playButton = document.getElementById("playButton");
+      const sendButton = document.getElementById("sendButton");
+      const audioPlayer = document.getElementById("audioPlayer");
+      const resultText = document.getElementById("resultText");
+
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then(function (stream) {
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.ondataavailable = function (event) {
+            if (event.data.size > 0) {
+              recordedChunks.push(event.data);
+            }
+          };
+
+          mediaRecorder.onstop = function () {
+            const audioBlob = new Blob(recordedChunks, { type: "audio/wav" });
+            uploadBlob = audioBlob;
+            const audioUrl = URL.createObjectURL(audioBlob);
+            console.log(audioUrl);
+            audioPlayer.src = audioUrl;
+            playButton.disabled = false;
+            sendButton.disabled = false;
+          };
+        })
+        .catch(function (error) {
+          console.error("Error accessing microphone:", error);
+        });
+
+      recordButton.addEventListener("click", function () {
+        recordedChunks = [];
+        mediaRecorder.start();
+        recordButton.disabled = true;
+        stopButton.disabled = false;
+      });
+
+      stopButton.addEventListener("click", function () {
+        mediaRecorder.stop();
+        recordButton.disabled = false;
+        stopButton.disabled = true;
+      });
+
+      playButton.addEventListener("click", function () {
+        audioPlayer.play();
+      });
+
+      sendButton.addEventListener("click", function () {
+        const audioBlob = uploadBlob;
+        console.log("Audio Blob size:", audioBlob.size);
+
+        const formData = new FormData();
+        formData.append("audio", audioBlob);
+
+        console.log("FormData:", formData);
+        console.log(audioBlob);
+
+        fetch("http://127.0.0.1:5000/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => {
+            console.log("Audio sent successfully!");
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((jsonData) => {
+            resultText.innerHTML = "";
+            let segments = jsonData.result.segments;
+            console.log(segments);
+            for (let i = 0; i < segments.length; i++) {
+              for (let j = 0; j < segments[i].words.length; j++) {
+                const node = document.createElement("span");
+                node.innerText = segments[i].words[j].text;
+                const confidence = segments[i].words[j].confidence;
+                node.style.background =
+                  confidence < 0.5
+                    ? "red"
+                    : confidence < 0.7
+                    ? "yellow"
+                    : "green";
+                console.log(segments[i].words[j]);
+                if (j != segments[i].words.length - 1) {
+                  node.innerText += " ";
+                }
+                resultText.appendChild(node);
+              }
+            }
+            // const node = document.createElement("span");
+            // node.innerText = "Hello";
+            // resultText.appendChild(node);
+            // resultText.innerText = jsonData.result.text;
+          })
+          .catch((error) => {
+            console.error("Error sending audio:", error);
+          });
+      });
+    </script>
+  </body>
+</html>
