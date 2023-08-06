@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Audio Recorder and Player</title>
+    <title>Whisper App demo</title>
   </head>
   <body>
-    <h1>Audio Recorder and Player</h1>
+    <h1>Whisper App Demo</h1>
+    <div>
+      <audio controls id="audioPlayer"></audio>
+    </div>
     <button id="recordButton">Record</button>
     <button id="stopButton" disabled>Stop</button>
     <button id="playButton" disabled>Play</button>
     <button id="sendButton" disabled>Send</button>
-    <audio controls id="audioPlayer"></audio>
     <p id="resultText"></p>
 
     <script>
@@ -109,10 +111,6 @@
                 resultText.appendChild(node);
               }
             }
-            // const node = document.createElement("span");
-            // node.innerText = "Hello";
-            // resultText.appendChild(node);
-            // resultText.innerText = jsonData.result.text;
           })
           .catch((error) => {
             console.error("Error sending audio:", error);
